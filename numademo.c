@@ -445,7 +445,7 @@ void test(enum test type)
 		memtest("setting wrong preferred node", numa_alloc(msize));
 		numa_set_preferred(node_to_use[i]);
 		memtest("setting correct preferred node", numa_alloc(msize));
-		numa_set_preferred(-1);
+		numa_set_localalloc();
 		if (!delim[0])
 			printf("\n\n\n");
 	}
