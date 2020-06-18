@@ -27,7 +27,8 @@ extern long move_pages(int pid, unsigned long count,
 #define MPOL_BIND        2
 #define MPOL_INTERLEAVE  3
 #define MPOL_LOCAL       4
-#define MPOL_MAX         5
+#define MPOL_PREFERRED_MANY   5
+#define MPOL_MAX         6
 
 /* Flags for get_mem_policy */
 #define MPOL_F_NODE    (1<<0)   /* return next il node or node of address */

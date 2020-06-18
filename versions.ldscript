@@ -146,3 +146,10 @@ libnuma_1.4 {
   local:
     *;
 } libnuma_1.3;
+
+libnuma_1.5 {
+  global:
+    numa_has_preferred_many;
+  local:
+    *;
+} libnuma_1.4;
