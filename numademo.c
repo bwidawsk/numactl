@@ -370,6 +370,18 @@ void test(enum test type)
 				strcat(buf, buf2);
 			}
 		memtest(buf, numa_alloc_interleaved_subset(msize, nodes));
+
+		if (!numa_has_preferred_many())
+			continue;
+
+		sprintf(buf, "memory preferred on");
+		for (k = 0; k < numnodes; k++)
+			if ((1UL<<node_to_use[k]) & mask) {
+				sprintf(buf2, " %d", node_to_use[k]);
+				strcat(buf, buf2);
+			}
+		numa_set_preferred_many(nodes);
+		memtest(buf, numa_alloc(msize));
 	}
 
 	for (i = 0; i < numnodes; i++) {
