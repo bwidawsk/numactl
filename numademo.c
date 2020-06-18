@@ -442,10 +442,26 @@ void test(enum test type)
 		numa_set_localalloc();
 		memtest("local allocation", numa_alloc(msize));
 
+#define set_pref_many(__i) do {			\
+        numa_bitmask_clearall(nodes);		\
+        numa_bitmask_setbit(nodes, __i);	\
+        numa_set_preferred_many(nodes);		\
+} while (0)
 		numa_set_preferred(node_to_use[(i + 1) % numnodes]);
 		memtest("setting wrong preferred node", numa_alloc(msize));
 		numa_set_preferred(node_to_use[i]);
 		memtest("setting correct preferred node", numa_alloc(msize));
+
+		if (numa_has_preferred_many()) {
+			set_pref_many(node_to_use[(i + 1) % numnodes]);
+			memtest("setting wrong preferred node (many)",
+					numa_alloc(msize));
+			set_pref_many(node_to_use[i]);
+			memtest("setting correct preferred node (many)",
+					numa_alloc(msize));
+		}
+#undef set_pref_many
+
 		numa_set_localalloc();
 		if (!delim[0])
 			printf("\n\n\n");
