@@ -39,6 +39,7 @@ struct option opts[] = {
 	{"all", 0, 0, 'a'},
 	{"interleave", 1, 0, 'i' },
 	{"preferred", 1, 0, 'p' },
+	{"preferred-many", 1, 0, 'P' },
 	{"cpubind", 1, 0, 'c' },
 	{"cpunodebind", 1, 0, 'N' },
 	{"physcpubind", 1, 0, 'C' },
@@ -65,7 +66,8 @@ struct option opts[] = {
 void usage(void)
 {
 	fprintf(stderr,
-		"usage: numactl [--all | -a] [--interleave= | -i <nodes>] [--preferred= | -p <node>]\n"
+		"usage: numactl [--all | -a] [--interleave= | -i <nodes>]\n"
+		"		[--preferred= | -p <node>] [--preferred-many= | -P <nodes>]\n"
 		"               [--physcpubind= | -C <cpus>] [--cpunodebind= | -N <nodes>]\n"
 		"               [--membind= | -m <nodes>] [--localalloc | -l] command args ...\n"
 		"       numactl [--show | -s]\n"
@@ -128,8 +130,7 @@ void show_physcpubind(void)
 
 void show(void)
 {
-	unsigned long prefnode;
-	struct bitmask *membind, *interleave, *cpubind;
+	struct bitmask *membind, *interleave, *cpubind, *preferred;
 	unsigned long cur;
 	int policy;
 
@@ -141,7 +142,7 @@ void show(void)
 
 	cpubind = numa_get_run_node_mask();
 
-	prefnode = numa_preferred();
+	preferred = numa_preferred_many();
 	interleave = numa_get_interleave_mask();
 	membind = numa_get_membind();
 	cur = numa_get_interleave_node();
@@ -155,8 +156,10 @@ void show(void)
 	printf("preferred node: ");
 	switch (policy) {
 	case MPOL_PREFERRED:
-		assert(prefnode != -1);
-		printf("%ld\n", prefnode);
+		if (numa_bitmask_weight(preferred))
+			printf("%d\n", find_first(preferred));
+		else
+			printf("%d\n", 0);
 		break;
 	case MPOL_DEFAULT:
 		printf("current\n");
@@ -167,6 +170,9 @@ void show(void)
 	case MPOL_BIND:
 		printf("%d\n", find_first(membind));
 		break;
+	case MPOL_PREFERRED_MANY:
+		printf("%ld (preferred many)\n",cur);
+		break;
 	}
 	if (policy == MPOL_INTERLEAVE) {
 		printmask("interleavemask", interleave);
@@ -176,6 +182,7 @@ void show(void)
 	printmask("cpubind", cpubind);  // for compatibility
 	printmask("nodebind", cpubind);
 	printmask("membind", membind);
+	printmask("preferred", preferred);
 }
 
 char *fmt_mem(unsigned long long mem, char *buf)
@@ -513,9 +520,11 @@ int main(int ac, char **av)
 			numa_set_bind_policy(0);
 			checkerror("setting membind");
 			break;
+		case 'P': /* --preferred-many */
+			if (!numa_has_preferred_many())
+				complain("preferred_many requested without kernel support");
 		case 'p': /* --preferred */
 			checknuma();
-			setpolicy(MPOL_PREFERRED);
 			if (parse_all)
 				mask = numactl_parse_nodestring(optarg, ALL);
 			else
@@ -524,17 +533,23 @@ int main(int ac, char **av)
 				printf ("<%s> is invalid\n", optarg);
 				usage();
 			}
-			if (numa_bitmask_weight(mask) != 1)
-				usage();
 			errno = 0;
 			did_node_cpu_parse = 1;
 			numa_set_bind_policy(0);
 			if (shmfd >= 0)
 				numa_tonode_memory(shmptr, shmlen, node);
-			else
+			else if (c == 'p') {
+				if (numa_bitmask_weight(mask) != 1)
+					usage();
+
+				setpolicy(MPOL_PREFERRED);
 				numa_set_preferred(find_first(mask));
+			} else {
+				setpolicy(MPOL_PREFERRED_MANY);
+				numa_set_preferred_many(mask);
+			}
 			numa_bitmask_free(mask);
-			checkerror("setting preferred node");
+			checkerror("setting preferred node(s)");
 			break;
 		case 'l': /* --local */
 			checknuma();

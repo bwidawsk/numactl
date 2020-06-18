@@ -309,6 +309,7 @@ void verify_shm(int policy, struct bitmask *nodes)
 			}
 			ilnode = interleave_next(ilnode, nodes2);
 			break;
+		case MPOL_PREFERRED_MANY:
 		case MPOL_PREFERRED:
 		case MPOL_BIND:
 			if (!numa_bitmask_isbitset(nodes2, node)) {
