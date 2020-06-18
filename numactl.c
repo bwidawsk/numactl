@@ -415,7 +415,7 @@ static struct bitmask *numactl_parse_nodestring(char *s, int flag)
 
 int main(int ac, char **av)
 {
-	int c, i, nnodes=0;
+	int c;
 	long node=-1;
 	char *end;
 	char shortopts[array_len(opts)*2 + 1];
@@ -524,22 +524,16 @@ int main(int ac, char **av)
 				printf ("<%s> is invalid\n", optarg);
 				usage();
 			}
-			for (i=0; i<mask->size; i++) {
-				if (numa_bitmask_isbitset(mask, i)) {
-					node = i;
-					nnodes++;
-				}
-			}
-			if (nnodes != 1)
+			if (numa_bitmask_weight(mask) != 1)
 				usage();
-			numa_bitmask_free(mask);
 			errno = 0;
 			did_node_cpu_parse = 1;
 			numa_set_bind_policy(0);
 			if (shmfd >= 0)
 				numa_tonode_memory(shmptr, shmlen, node);
 			else
-				numa_set_preferred(node);
+				numa_set_preferred(find_first(mask));
+			numa_bitmask_free(mask);
 			checkerror("setting preferred node");
 			break;
 		case 'l': /* --local */
